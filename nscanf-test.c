@@ -28,9 +28,11 @@ int main(int argc, char **argv)
 	const char *test[] = {
 		"test askdjhfaskljdfh aa % again",
 		"test lkjlkjlkjlkjlkj zzzz bb %",
+		"net123other",
 	};
 	char name[10];
 	char name2[5];
+	int testint;
 
 	name[0] = '\0';
 	name2[0] = '\0';
@@ -41,6 +43,12 @@ int main(int argc, char **argv)
 	name2[0] = '\0';
 	ret = sscanf(test[1], "test %9s %4s bb %%", name, name2);
 	printf("%d \"%s\" \"%s\"\n", ret, name, name2);
+
+	name[0] = '\0';
+	testint = 0;
+	ret = sscanf(test[2], "net%d%s", &testint, name);
+	printf("%d \"%d\" \"%s\"\n", ret, testint, name);
+
 
 	name[0] = '\0';
 	name2[0] = '\0';
@@ -57,6 +65,15 @@ int main(int argc, char **argv)
 		NSCANF_LEN(sizeof(name) - 1, sizeof(name2) - 1),
 		name, name2),
 	printf("%d \"%s\" \"%s\"\n", ret, name, name2);
+
+	name[0] = '\0';
+	name2[0] = '\0';
+	testint = 0;
+	ret = snscanf(test[2],
+		"net%d%s",
+		NSCANF_LEN(-1, sizeof(name) - 1),
+		&testint, name);
+	printf("%d \"%d\" \"%s\"\n", ret, testint, name);
 
 	return 0;
 }

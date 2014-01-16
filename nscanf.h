@@ -60,26 +60,26 @@
  */
 extern int nscanf(const char *format,
 		const ssize_t *field_widths, ...)
-	__attribute__ ((__format__ (__printf__, 1, 3)));
+	__attribute__ ((__format__ (__scanf__, 1, 3)));
 
 extern int fnscanf(FILE *stream, const char *format,
 		const ssize_t *field_widths, ...)
-	__attribute__ ((__format__ (__printf__, 2, 4)));
+	__attribute__ ((__format__ (__scanf__, 2, 4)));
 
 extern int snscanf(const char *str, const char *format,
 		const ssize_t *field_widths, ...)
-	__attribute__ ((__format__ (__printf__, 2, 4)));
+	__attribute__ ((__format__ (__scanf__, 2, 4)));
 
 extern int vnscanf(const char *format,
 		const ssize_t *field_widths, va_list ap)
-	__attribute__ ((__format__ (__printf__, 1, 0)));
+	__attribute__ ((__format__ (__scanf__, 1, 0)));
 
 extern int vfnscanf(FILE *stream, const char *format,
 		const ssize_t *field_widths, va_list ap)
-	__attribute__ ((__format__ (__printf__, 2, 0)));
+	__attribute__ ((__format__ (__scanf__, 2, 0)));
 
 extern int vsnscanf(const char *str, const char *format,
 		const ssize_t *field_widths, va_list ap)
-	__attribute__ ((__format__ (__printf__, 2, 0)));
+	__attribute__ ((__format__ (__scanf__, 2, 0)));
 
 #endif /* NSCANF_H */

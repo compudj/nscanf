@@ -308,9 +308,7 @@ int nscanf_prepare_fmt(const char *format,
 			break;		/* exit switch */
 		}
 	}
-
 	*format_out = format_a;
-end:
 	return 0;
 
 end_error:
