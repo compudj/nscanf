@@ -40,13 +40,13 @@
 static
 int nscanf_prepare_fmt(const char *format,
 		char **format_out,
-		const size_t *field_widths)
+		const ssize_t *field_widths)
 {
 	char *format_a, *dest_p;
 	size_t format_a_len;
 	const char *p, *prev_p;
 	int ret;
-	const size_t *fw_iter = field_widths;
+	const ssize_t *fw_iter = field_widths;
 	size_t nr_fw = 0;
 
 	/*
@@ -61,16 +61,119 @@ int nscanf_prepare_fmt(const char *format,
 			break;
 		}
 		p++;	/* Include % */
-		if (*p == '%') {
-			/* match %% */
+		switch (*p) {
+		case '%':	/* match %% */
 			p++;
-			continue;
+			continue;	/* restart loop */
+		case '*':	/* match %* */
+			p++;
+			break;		/* exit switch */
+		default:
+			break;		/* exit switch */
 		}
+
+		/* Match n$ part of %n$ */
+		prev_p = p;
+		for (;;) {
+			if (*p == '\0') {
+				errno = EINVAL;
+				return -1;
+			}
+			if (isdigit(*p)) {
+				p++;
+				continue;
+			}
+			if (*p == '$') {
+				p++;
+				/* This is the %n$ */
+				break;
+			}
+			/* This is not a %n$ */
+			p = prev_p;
+			break;
+		}
+
+		/*
+		 * 'a' can be either GNU extension (dynamic allocation)
+		 * or C99 conversion specifier. Refuse it due to
+		 * semantic uncertainty.
+		 */
+		if (*p == 'a') {
+			errno = EINVAL;
+			return -1;
+		}
+
+		/* Refuse explicit field width */
 		if (isdigit(*p)) {
 			/* unexpected numerical field len */
 			errno = EINVAL;
 			return -1;
 		}
+
+		/* Length modifiers */
+		switch (*p) {
+		case 'h':
+			/* 'h' or 'hh' */
+			p++;
+			if (*p == 'h') {
+				p++;
+			}
+			break;		/* exit switch */
+		case 'l':
+			/* 'l' or 'll' */
+			p++;
+			if (*p == 'l') {
+				p++;
+			}
+			break;		/* exit switch */
+		case 'j':
+		case 'z':
+		case 't':
+		case 'q':
+		case 'L':
+			p++;
+			break;		/* exit switch */
+		default:
+			/* no length modifier */
+			break;		/* exit switch */
+		}
+
+		/* conversion specifiers */
+		switch (*p) {
+		case '[':
+			/*
+			 * We need to understand the '[' conversion
+			 * specifier because it may contain an extra %
+			 * character.
+			 */
+			p++;
+			if (*p == '^') {
+				p++;
+			}
+			if (*p == ']') {
+				p++;
+			}
+			p = strchrnul(p, ']');
+			if (*p == '\0') {
+				/* Invalid: missing ']' */
+				errno = EINVAL;
+				return -1;
+			}
+			p++;		/* skip over ']' */
+			break;		/* exit switch */
+		case 'n':
+		case 'a':
+			/* Refuse the 'n' and 'a' specifiers */
+			errno = EINVAL;
+			return -1;
+		default:
+			/*
+			 * Leave other conversion specifier validation
+			 * to the scanf implementation.
+			 */
+			break;		/* exit switch */
+		}
+
 		/* Found one location for field width */
 		nr_fw++;
 	}
@@ -98,22 +201,112 @@ int nscanf_prepare_fmt(const char *format,
 		p++;	/* Include % */
 		memcpy(dest_p, prev_p, p - prev_p);
 		dest_p += p - prev_p;
-		if (*p == '%') {
-			/* match %% */
-			*(dest_p++) = '%';
-			p++;
-			continue;
+
+		switch (*p) {
+		case '%':	/* match %% */
+			*(dest_p++) = *(p++);
+			continue;	/* restart loop */
+		case '*':	/* match %* */
+			*(dest_p++) = *(p++);
+			break;		/* exit switch */
+		default:
+			break;		/* exit switch */
 		}
+
+		/* Match n$ part of %n$ */
+		prev_p = p;
+		for (;;) {
+			assert(*p != '\0');
+			if (isdigit(*p)) {
+				p++;
+				continue;
+			}
+			if (*p == '$') {
+				p++;
+				/* This is the %n$ */
+				memcpy(dest_p, prev_p, p - prev_p);
+				dest_p += p - prev_p;
+				break;
+			}
+			/* This is not a %n$ */
+			p = prev_p;
+			break;
+		}
+
+		assert(*p != 'a');
+		assert(!isdigit(*p));
+
 		/*
-		 * Print len into format string. Size received as input
-		 * includes final \0.
+		 * Print len into format string.
 		 */
-		ret = sprintf(dest_p, "%zu", *(fw_iter++) - 1);
-		if (ret < 0) {
-			goto end_error;
+		if (*fw_iter >= 0) {
+			ret = sprintf(dest_p, "%zu", *fw_iter);
+			if (ret < 0) {
+				goto end_error;
+			}
+			assert(ret <= NSCANF_NUM_WIDTH);
+			dest_p += ret;
 		}
-		assert(ret <= NSCANF_NUM_WIDTH);
-		dest_p += ret;
+		fw_iter++;
+
+		/* Length modifiers */
+		switch (*p) {
+		case 'h':
+			/* 'h' or 'hh' */
+			*(dest_p++) = *(p++);
+			if (*p == 'h') {
+				*(dest_p++) = *(p++);
+			}
+			break;		/* exit switch */
+		case 'l':
+			/* 'l' or 'll' */
+			*(dest_p++) = *(p++);
+			if (*p == 'l') {
+				*(dest_p++) = *(p++);
+			}
+			break;		/* exit switch */
+		case 'j':
+		case 'z':
+		case 't':
+		case 'q':
+		case 'L':
+			*(dest_p++) = *(p++);
+			break;		/* exit switch */
+		default:
+			/* no length modifier */
+			break;		/* exit switch */
+		}
+
+		/* conversion specifiers */
+		assert(*p != 'n' && *p != 'a');
+		prev_p = p;
+		switch (*p) {
+		case '[':
+			/*
+			 * We need to understand the '[' conversion
+			 * specifier because it may contain an extra %
+			 * character.
+			 */
+			p++;
+			if (*p == '^') {
+				p++;
+			}
+			if (*p == ']') {
+				p++;
+			}
+			p = strchrnul(p, ']');
+			assert(*p != '\0');
+			p++;		/* skip over ']' */
+			memcpy(dest_p, prev_p, p - prev_p);
+			dest_p += p - prev_p;
+			break;		/* exit switch */
+		default:
+			/*
+			 * Leave other conversion specifier validation
+			 * to the scanf implementation.
+			 */
+			break;		/* exit switch */
+		}
 	}
 
 	*format_out = format_a;
@@ -126,7 +319,7 @@ end_error:
 }
 
 int vsnscanf(const char *str, const char *format,
-		const size_t *field_widths, va_list ap)
+		const ssize_t *field_widths, va_list ap)
 {
 	char *format_a;
 	int ret;
@@ -142,7 +335,7 @@ end:
 }
 
 int snscanf(const char *str, const char *format,
-		const size_t *field_widths, ...)
+		const ssize_t *field_widths, ...)
 {
 	va_list ap;
 	int ret;
@@ -154,7 +347,7 @@ int snscanf(const char *str, const char *format,
 }
 
 int vfnscanf(FILE *stream, const char *format,
-		const size_t *field_widths, va_list ap)
+		const ssize_t *field_widths, va_list ap)
 {
 	char *format_a;
 	int ret;
@@ -170,7 +363,7 @@ end:
 }
 
 int fnscanf(FILE *stream, const char *format,
-		const size_t *field_widths, ...)
+		const ssize_t *field_widths, ...)
 {
 	va_list ap;
 	int ret;
@@ -182,12 +375,12 @@ int fnscanf(FILE *stream, const char *format,
 }
 
 int vnscanf(const char *format,
-		const size_t *field_widths, va_list ap)
+		const ssize_t *field_widths, va_list ap)
 {
 	return vfnscanf(stdin, format, field_widths, ap);
 }
 
-int nscanf(const char *format, const size_t *field_widths, ...)
+int nscanf(const char *format, const ssize_t *field_widths, ...)
 {
 	va_list ap;
 	int ret;
