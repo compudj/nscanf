@@ -56,7 +56,6 @@ int nscanf_prepare_fmt(const char *format,
 	p = format;
 
 	while (*p != '\0') {
-		prev_p = p;
 		p = strchrnul(p, '%');
 		if (*p == '\0') {
 			break;
