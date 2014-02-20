@@ -240,7 +240,29 @@ int nscanf_prepare_fmt(const char *format,
 		 * Print len into format string.
 		 */
 		if (*fw_iter >= 0) {
-			ret = sprintf(dest_p, "%zu", *fw_iter);
+			size_t width = *fw_iter;
+
+			switch (*p) {
+			case 's':
+			case '[':
+				if (!width) {
+					errno = EINVAL;
+					ret = -1;
+					goto end_error;
+				}
+				/*
+				 * Provide a dumb-proof API by including
+				 * the final '\0' within the width
+				 * received as argument, unlike scanf().
+				 * Adapt the width value for scanf()
+				 * here.
+				 */
+				width--;
+				break;
+			default:
+				break;
+			}
+			ret = sprintf(dest_p, "%zu", width);
 			if (ret < 0) {
 				goto end_error;
 			}

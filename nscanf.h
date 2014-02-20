@@ -35,7 +35,7 @@
  * char numerator[20], denominator[20];
  *
  * ret = nscanf("%s/%s",
- *    NSCANF_LEN(sizeof(numerator) - 1, sizeof(denominator) - 1),
+ *    NSCANF_LEN(sizeof(numerator), sizeof(denominator)),
  *    numerator, denominator);
  *
  */
@@ -44,19 +44,25 @@
 
 /*
  * field_widths is an array of ssize_t elements that specify the length
- * of each following parameter (field width). For string conversion ('s'
- * and '[' conversion specifiers), this size does _not_ include the
- * final \0 for each string. A negative size entry value does not add
- * field width information to the associated conversion specification.
+ * of each following parameter (field width).
  *
- * The following scanf(3) features are not accepted. Those will return -1
+ * UNLIKE TO THE REGULAR SCANF(3) FAMILY OF FUNCTIONS, FOR SECURITY
+ * REASONS, STRING CONVERSION ('s' AND '[' CONVERSION SPECIFIERS) WIDTH
+ * INCLUDE THE FINAL \0 FOR EACH STRING. FOR THOSE, A WIDTH OF 0 RETURN
+ * -1 WITH A EINVAL ERROR.
+ *
+ * The following scanf(3) features are not accepted. Those return -1
  * with a EINVAL error:
  * - 'n' conversion specification,
  * - 'a' conversion specification,
  * - Explicit maximum field width in the format string.
  *
- * Other than this, it behaves in the same way as the scanf(3) family of
- * functions.
+ * A negative field width value skips field width validation for the
+ * associated conversion specification (use with care, only with
+ * pre-validated inputs!).
+
+ * Otherwise, the nscanf() family of functions behaves in the same way
+ * as scanf(3).
  */
 extern int nscanf(const char *format,
 		const ssize_t *field_widths, ...)

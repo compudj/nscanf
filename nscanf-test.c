@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 	name2[0] = '\0';
 	ret = snscanf(test[0],
 		"test %s aa %% again",
-		NSCANF_LEN(sizeof(name) - 1),
+		NSCANF_LEN(sizeof(name)),
 		name);
 	printf("%d \"%s\"\n", ret, name);
 
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	name2[0] = '\0';
 	ret = snscanf(test[1],
 		"test %s %s bb %%",
-		NSCANF_LEN(sizeof(name) - 1, sizeof(name2) - 1),
+		NSCANF_LEN(sizeof(name), sizeof(name2)),
 		name, name2),
 	printf("%d \"%s\" \"%s\"\n", ret, name, name2);
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	testint = 0;
 	ret = snscanf(test[2],
 		"net%d%s",
-		NSCANF_LEN(-1, sizeof(name) - 1),
+		NSCANF_LEN(-1, sizeof(name)),
 		&testint, name);
 	printf("%d \"%d\" \"%s\"\n", ret, testint, name);
 
