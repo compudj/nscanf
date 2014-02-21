@@ -43,6 +43,18 @@
 	(const ssize_t []) { __VA_ARGS__ }
 
 /*
+ * Common integer character max widths.
+ */
+#define NSCANF_LEN_u32	10
+#define NSCANF_LEN_s32	11
+#define NSCANF_LEN_o32	11
+#define NSCANF_LEN_x32	9
+#define NSCANF_LEN_u64	20
+#define NSCANF_LEN_s64	21
+#define NSCANF_LEN_o64	22
+#define NSCANF_LEN_x64	17
+
+/*
  * field_widths is an array of ssize_t elements that specify the length
  * of each following parameter (field width).
  *
