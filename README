@@ -7,4 +7,4 @@ Validates *scanf output variable lengths.
 
 Build with make, run ./run.sh for tests. API in nscanf.h.
 
-Released under LGPLv2.1+.
+Released under MIT license.
