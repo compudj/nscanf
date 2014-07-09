@@ -76,7 +76,7 @@
  * A negative field width value skips field width validation for the
  * associated conversion specification (use with care, only with
  * pre-validated inputs!).
-
+ *
  * Otherwise, the nscanf() family of functions behaves in the same way
  * as scanf(3).
  */
